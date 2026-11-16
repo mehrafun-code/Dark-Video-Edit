@@ -17,12 +17,17 @@ FF = _ffmpeg()
 def _ff_dir():
     """yt-dlp needs a folder containing a file literally named ffmpeg(.exe); imageio's binary has a long name."""
     if os.path.splitext(os.path.basename(FF))[0].lower() == "ffmpeg":
-        return os.path.dirname(FF)
-    d = os.path.join(os.path.expanduser("~"), ".darkvideoedit", "bin"); os.makedirs(d, exist_ok=True)
-    dst = os.path.join(d, "ffmpeg.exe" if os.name == "nt" else "ffmpeg")
-    if not os.path.exists(dst) or os.path.getsize(dst) != os.path.getsize(FF):
-        shutil.copy2(FF, dst)
-        if os.name != "nt": os.chmod(dst, 0o755)
+        d = os.path.dirname(FF)
+    else:
+        d = os.path.join(os.path.expanduser("~"), ".darkvideoedit", "bin"); os.makedirs(d, exist_ok=True)
+        dst = os.path.join(d, "ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+        if not os.path.exists(dst) or os.path.getsize(dst) != os.path.getsize(FF):
+            shutil.copy2(FF, dst)
+            if os.name != "nt": os.chmod(dst, 0o755)
+    exe = os.path.join(d, "ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+    t = subprocess.run([exe, "-version"], capture_output=True, text=True, creationflags=NOWIN)
+    if t.returncode: raise RuntimeError("ffmpeg cannot start: " + exe + " " + (t.stderr or "")[-150:])
+    os.environ["PATH"] = d + os.pathsep + os.environ.get("PATH", "")
     return d
 
 def run(args, **kw):
