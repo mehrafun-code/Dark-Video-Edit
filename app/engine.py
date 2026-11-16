@@ -14,6 +14,17 @@ def _ffmpeg():
     return imageio_ffmpeg.get_ffmpeg_exe()
 FF = _ffmpeg()
 
+def _ff_dir():
+    """yt-dlp needs a folder containing a file literally named ffmpeg(.exe); imageio's binary has a long name."""
+    if os.path.splitext(os.path.basename(FF))[0].lower() == "ffmpeg":
+        return os.path.dirname(FF)
+    d = os.path.join(os.path.expanduser("~"), ".darkvideoedit", "bin"); os.makedirs(d, exist_ok=True)
+    dst = os.path.join(d, "ffmpeg.exe" if os.name == "nt" else "ffmpeg")
+    if not os.path.exists(dst) or os.path.getsize(dst) != os.path.getsize(FF):
+        shutil.copy2(FF, dst)
+        if os.name != "nt": os.chmod(dst, 0o755)
+    return d
+
 def run(args, **kw):
     return subprocess.run([FF, "-v", "error", "-y", *args], capture_output=True, text=True, creationflags=NOWIN, **kw)
 
@@ -149,7 +160,7 @@ def yt_download(url, start, end, outdir, browser=None, crop=None, progress=lambd
     o = {"quiet": True, "noplaylist": True, "download_ranges": download_range_func(None, [(start, end)]),
          "force_keyframes_at_cuts": True, "format": "bv*[height<=1080]+ba/b[height<=1080]", "merge_output_format": "mp4",
          "outtmpl": os.path.join(outdir, f"%(title).50s_%(id)s_{int(start)}-{int(end)}.%(ext)s"),
-         "ffmpeg_location": FF, "progress_hooks": [hook]}
+         "ffmpeg_location": _ff_dir(), "progress_hooks": [hook]}
     if browser: o["cookiesfrombrowser"] = (browser,)
     with YoutubeDL(o) as y:
         i = y.extract_info(url, download=True); path = i["requested_downloads"][0]["filepath"]
