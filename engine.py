@@ -97,8 +97,8 @@ def detect_kills(path, fps=5, thr=6, gap=3.0):
         else: out.append([s, e])
     return out
 
-def thumb(path, t):
-    p = subprocess.run([FF, "-v", "error", "-ss", f"{t:.2f}", "-i", path, "-frames:v", "1", "-vf", "scale=160:-1",
+def thumb(path, t, w=160):
+    p = subprocess.run([FF, "-v", "error", "-ss", f"{t:.2f}", "-i", path, "-frames:v", "1", "-vf", f"scale={w}:-1",
                         "-f", "mjpeg", "-"], capture_output=True, creationflags=NOWIN)
     return "data:image/jpeg;base64," + base64.b64encode(p.stdout).decode() if p.stdout else ""
 
@@ -189,6 +189,10 @@ def yt_info(url, browser=None):
 def yt_download(url, start, end, outdir, browser=None, crop=None, progress=lambda p, t: None):
     from yt_dlp import YoutubeDL
     from yt_dlp.utils import download_range_func
+    try:  # yt-dlp's pre-check ignores ffmpeg_location and only looks at PATH; the real download honours it
+        from yt_dlp.downloader.external import FFmpegFD
+        FFmpegFD.available = classmethod(lambda cls, path=None: True)
+    except Exception: pass
     os.makedirs(outdir, exist_ok=True)
     def hook(d):
         if d["status"] == "downloading":

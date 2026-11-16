@@ -46,6 +46,10 @@ class Api:
                           lambda p, t: self._emit("dl_progress", {"p": p, "t": t}))
         d = E.duration(p); self._emit("dl_done", {"path": p, "dur": d, "thumb": E.thumb(p, min(1, d / 2))})
 
+    def frame(self, path, t):
+        try: return E.thumb(path, float(t), 360)
+        except Exception: return ""
+
     def set_browser(self, b): self.browser = b or None; return True
     def title(self, n): return E.make_title(n)
     def open_folder(self, p=None):
@@ -54,6 +58,6 @@ class Api:
 if __name__ == "__main__":
     api = Api()
     threading.Thread(target=E.diagnose, daemon=True).start()
-    api._win = webview.create_window("Dark Video Edit", E.res("ui", "index.html"), js_api=api,
+    api._win = webview.create_window("Dark Video Edit  -  build 1.2", E.res("ui", "index.html"), js_api=api,
                                     width=1440, height=900, min_size=(1100, 700), background_color="#09080b")
     webview.start(http_server=True, private_mode=False, storage_path=os.path.join(os.path.expanduser("~"), ".darkvideoedit"))

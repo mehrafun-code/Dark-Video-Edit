@@ -135,6 +135,12 @@ input[type=range]{width:100%;accent-color:var(--red)}
 <div class="stat"><b>9:16</b><span>Instagram · Shorts</span></div>
 </div></div>
 <div class="tl">
+<div class="tlh"><h3 class="hd" style="margin:0">Shot timeline · tap to keep or remove</h3>
+<div class="chips" style="margin:0"><button>30s</button><button>60s</button><button class="on">All</button><button>+ Add shot</button></div></div>
+<div class="shots" id="shots"></div>
+<div class="wave"></div>
+</div>
+<div class="tl">
 <h3 class="hd">Import from YouTube link · download only the part you pick</h3>
 <div class="lk"><input type="text" id="lk" value="https://youtube.com/watch?v=yourVideoId"><button id="li">Load</button></div>
 <div class="note" id="vi" style="margin:0 0 8px">Paste a video or live stream link. Nothing is downloaded yet.</div>
@@ -146,12 +152,6 @@ input[type=range]{width:100%;accent-color:var(--red)}
 <div class="tm">Start <input type="text" id="ts"> End <input type="text" id="te"><span class="chip">Selected <b id="td"></b></span><button id="l30">Last 30s</button><button class="pri" id="dl">⬇ Download selected part only</button></div>
 <div class="bar"><i id="db"></i></div><div class="note" id="dt"></div>
 <div class="note">Use only your own videos and streams. Type the time or drag the two handles.</div>
-</div>
-<div class="tl">
-<div class="tlh"><h3 class="hd" style="margin:0">Shot timeline · tap to keep or remove</h3>
-<div class="chips" style="margin:0"><button>30s</button><button>60s</button><button class="on">All</button><button>+ Add shot</button></div></div>
-<div class="shots" id="shots"></div>
-<div class="wave"></div>
 </div>
 </main>
 <div class="insp">
@@ -249,26 +249,35 @@ $("#gen").onclick=()=>{$("#ti").value=tt[k++%4]}
 const hasApi=()=>!!(window.pywebview&&window.pywebview.api);
 let clips=[],lastOut="";
 function prog(p,t){$("#pb").style.width=p+"%";$("#ps").textContent=t}
+/* ===== live preview (real frame in the phone) ===== */
+let PV=null,FR={},busy=false,want=null;
+function setBg(u){const g=document.querySelector(".phone .game");if(g){g.textContent="";g.style.background=`url(${u}) center/cover`}}
+function fetchFrame(){if(busy||!want||!hasApi())return;const w=want;if(FR[w.key])return;busy=true;
+pywebview.api.frame(w.s.path,w.t).then(u=>{busy=false;if(u)FR[w.key]=u;if(want&&want.key===w.key){if(u)setBg(u)}else fetchFrame()}).catch(()=>{busy=false})}
+function show(s,fr){if(!s)return;PV=s;const D=Math.max(s.d||0,.1);
+if(fr==null)fr=s.hits&&s.hits.length?(s.hits[0]+.1-s.start)/D:.2;fr=Math.max(0,Math.min(.98,fr));
+const t=Math.round((s.start+fr*D)*2)/2,key=s.path+"|"+t;want={s,t,key};
+if(FR[key])return setBg(FR[key]);if(s.t)setBg(s.t);fetchFrame()}
 function draw(){S.innerHTML="";const f=x=>Math.floor(x/60)+":"+String(Math.round(x%60)).padStart(2,"0");
 sh.forEach((s,i)=>{const d=document.createElement("div");d.className="shot "+(s.on?"on":"off");
 d.innerHTML=`<div class="im" style="${s.t?`background:url(${s.t}) center/cover`:""}"><span class="tg ${s.m?"m":""}">${s.m?"CLIP":s.k+" KILL"+(s.k>1?"S":"")}</span></div><b>Shot ${i+1}</b> · ${Math.round(s.d)}s`;
-d.onclick=()=>{s.on=!s.on;draw()};d.onmouseenter=()=>{$("#pc").textContent=s.cap||""};S.append(d)});
+d.onclick=()=>{s.on=!s.on;draw()};d.onmouseenter=()=>{$("#pc").textContent=s.cap||"";show(s)};d.onmousemove=e=>{const r=d.getBoundingClientRect();show(s,(e.clientX-r.left)/r.width)};S.append(d)});
 const a=sh.filter(s=>s.on);$("#sk").textContent=a.reduce((x,s)=>x+(s.k||0),0);$("#sl").textContent=f(a.reduce((x,s)=>x+s.d,0))}
 function opts(){const w=[...document.querySelectorAll("#fx .row .sw")].map(x=>x.classList.contains("on"));
 return{fx:w[0],boom:w[1],counter:w[2],grade:w[4],vig:w[5],captions:$("#ct").classList.contains("on"),mode:$("#cm").selectedIndex,custom:$("#cc").value}}
 window.onEvent=(e,d)=>{
 if(e=="progress")prog(d.p,d.t);
-else if(e=="scan_done"){sh.length=0;d.shots.forEach((s,i)=>sh.push({...s,on:true,m:false,d:s.end-s.start,cap:caps[i%caps.length]}));draw();prog(100,"Done · "+d.kills+" kills found ✔")}
+else if(e=="scan_done"){sh.length=0;d.shots.forEach((s,i)=>sh.push({...s,on:true,m:false,d:s.end-s.start,cap:caps[i%caps.length]}));draw();show(sh[0]);prog(100,"Done · "+d.kills+" kills found ✔")}
 else if(e=="export_done"){lastOut=d.path;prog(100,"Reel saved ✔ "+d.path)}
 else if(e=="dl_progress"){$("#db").style.width=d.p+"%";$("#dt").textContent=d.t}
-else if(e=="dl_done"){sh.push({path:d.path,start:0,end:d.dur,hits:[],k:0,m:true,on:true,d:d.dur,t:d.thumb,cap:""});draw();$("#db").style.width="100%";$("#dt").textContent="Downloaded ✔ "+d.path}
+else if(e=="dl_done"){sh.push({path:d.path,start:0,end:d.dur,hits:[],k:0,m:true,on:true,d:d.dur,t:d.thumb,cap:""});draw();show(sh[sh.length-1]);$("#db").style.width="100%";$("#dt").textContent="Downloaded ✔ "+d.path}
 else if(e=="error"){prog(0,"Error: "+d.msg);$("#dt").textContent="Error: "+d.msg}};
 window.addEventListener("pywebviewready",()=>{
 sh.length=0;draw();document.querySelectorAll("aside .clip").forEach(x=>x.remove());
 const h=document.querySelector("aside h3.hd+*")?.previousElementSibling||document.querySelector("aside h3.hd");
 const box=document.createElement("div");box.id="cl";h.after(box);
 document.querySelector(".drop").onclick=async()=>{const r=await pywebview.api.pick_files();clips=clips.concat(r);
-box.innerHTML=clips.map(c=>`<div class="clip"><div class="th" style="background:url(${c.t||''}) center/cover,#1a2a40"></div><div>${c.name}<em>${fm(c.dur)}</em></div></div>`).join("");prog(0,clips.length+" clip(s) loaded")};
+box.innerHTML=clips.map(c=>`<div class="clip"><div class="th" style="background:url(${c.t||''}) center/cover,#1a2a40"></div><div>${c.name}<em>${fm(c.dur)}</em></div></div>`).join("");prog(0,clips.length+" clip(s) loaded");if(r.length)show({path:r[0].path,start:0,d:r[0].dur,hits:[],t:r[0].t},.1)};
 $("#scan").onclick=()=>{if(!clips.length)return prog(0,"Add clips first (click the drop box)");prog(2,"Scanning…");pywebview.api.scan(clips.map(c=>c.path))};
 $("#mk").onclick=()=>{const a=sh.filter(s=>s.on);if(!a.length)return prog(0,"Select at least one shot");const o=opts();prog(1,"Starting…");
 pywebview.api.export(a.map(s=>({path:s.path,start:s.start,end:s.end,hits:s.hits,cap:o.captions?(o.mode==1?o.custom:s.cap):""})),o)};
