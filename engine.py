@@ -8,6 +8,8 @@ def res(*p):
     return os.path.join(base, *p)
 
 def _ffmpeg():
+    b = res("bin", "ffmpeg.exe" if os.name == "nt" else "ffmpeg")   # ffmpeg bundled by the build workflow
+    if os.path.isfile(b): return b
     p = shutil.which("ffmpeg")
     if p: return p
     import imageio_ffmpeg
