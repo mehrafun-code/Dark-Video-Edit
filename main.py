@@ -20,7 +20,7 @@ class Api:
     def pick_files(self):
         kind = webview.FileDialog.OPEN if hasattr(webview, "FileDialog") else webview.OPEN_DIALOG
         r = self._win.create_file_dialog(kind, allow_multiple=True, file_types=("Video files (*.mp4;*.mov;*.mkv;*.webm)",))
-        return [{"path": p, "name": os.path.basename(p), "dur": E.duration(p)} for p in (r or [])]
+        return [{"path": p, "name": os.path.basename(p), "dur": E.duration(p), "t": E.thumb(p, 1.0)} for p in (r or [])]
 
     def scan(self, paths): self._bg(self._scan, paths)
     def _scan(self, paths):

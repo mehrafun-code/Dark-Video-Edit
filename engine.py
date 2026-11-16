@@ -32,6 +32,9 @@ def _ff_dir():
     os.environ["PATH"] = d + os.pathsep + os.environ.get("PATH", "")
     return d
 
+try: _ff_dir()
+except Exception: pass
+
 LOGDIR = os.path.join(os.path.expanduser("~"), ".darkvideoedit"); LOGFILE = os.path.join(LOGDIR, "log.txt")
 def log(msg):
     try:
