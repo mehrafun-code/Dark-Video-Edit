@@ -6,10 +6,10 @@ import engine as E
 OUT = os.path.join(os.path.expanduser("~"), "Videos", "DarkVideoEdit")
 
 class Api:
-    def __init__(self): self.win = None; self.browser = None
+    def __init__(self): self._win = None; self.browser = None
 
     def _emit(self, ev, data):
-        self.win.evaluate_js(f"window.onEvent({json.dumps(ev)},{json.dumps(data)})")
+        self._win.evaluate_js(f"window.onEvent({json.dumps(ev)},{json.dumps(data)})")
     def _bg(self, fn, *a):
         def w():
             try: fn(*a)
@@ -18,7 +18,7 @@ class Api:
 
     def pick_files(self):
         kind = webview.FileDialog.OPEN if hasattr(webview, "FileDialog") else webview.OPEN_DIALOG
-        r = self.win.create_file_dialog(kind, allow_multiple=True, file_types=("Video files (*.mp4;*.mov;*.mkv;*.webm)",))
+        r = self._win.create_file_dialog(kind, allow_multiple=True, file_types=("Video files (*.mp4;*.mov;*.mkv;*.webm)",))
         return [{"path": p, "name": os.path.basename(p), "dur": E.duration(p)} for p in (r or [])]
 
     def scan(self, paths): self._bg(self._scan, paths)
@@ -52,6 +52,6 @@ class Api:
 
 if __name__ == "__main__":
     api = Api()
-    api.win = webview.create_window("Dark Video Edit", E.res("ui", "index.html"), js_api=api,
+    api._win = webview.create_window("Dark Video Edit", E.res("ui", "index.html"), js_api=api,
                                     width=1440, height=900, min_size=(1100, 700), background_color="#09080b")
     webview.start(http_server=True, private_mode=False, storage_path=os.path.join(os.path.expanduser("~"), ".darkvideoedit"))
